@@ -1,0 +1,151 @@
+// components/admin/ScanResult.tsx
+// Muestra el resultado de buscar un disco por código de barras.
+
+import Image from 'next/image'
+import type { DiscogsSearchResult } from '@/lib/discogs/client'
+import type { Release }              from '@/types'
+
+interface ScanResultData {
+  discogs:       DiscogsSearchResult
+  inventory:     Release | null
+  total_results: number
+  all_results:   DiscogsSearchResult[]
+}
+
+interface ScanResultProps {
+  data: ScanResultData
+}
+
+export default function ScanResult({ data }: ScanResultProps) {
+  const { discogs, inventory } = data
+
+  // Discogs retorna "Artista - Título" en el campo title
+  const [artist, title] = discogs.title.includes(' - ')
+    ? discogs.title.split(' - ')
+    : ['', discogs.title]
+
+  return (
+    <div style={{ border: 'var(--rc-border-main)' }}>
+
+      {/* Cabecera: portada + datos */}
+      <div
+        className="flex gap-4 p-4"
+        style={{ borderBottom: 'var(--rc-border-card)' }}
+      >
+        {discogs.cover_image && (
+          <div className="relative shrink-0 overflow-hidden" style={{ width: 72, height: 72 }}>
+            <Image
+              src={discogs.cover_image}
+              alt={discogs.title}
+              fill
+              className="object-cover"
+              unoptimized
+            />
+          </div>
+        )}
+
+        <div className="flex-1 min-w-0">
+          {artist && (
+            <p className="font-display text-sm truncate" style={{ color: 'var(--rc-color-text)' }}>
+              {artist}
+            </p>
+          )}
+          <p
+            className="font-meta text-xs truncate mt-0.5"
+            style={{ color: artist ? 'var(--rc-color-muted)' : 'var(--rc-color-text)' }}
+          >
+            {title}
+          </p>
+
+          <div className="flex flex-wrap gap-3 mt-2">
+            {discogs.year && (
+              <Tag>{discogs.year}</Tag>
+            )}
+            {discogs.label?.[0] && (
+              <Tag>{discogs.label[0]}</Tag>
+            )}
+            {discogs.format?.[0] && (
+              <Tag>{discogs.format[0]}</Tag>
+            )}
+            {discogs.country && (
+              <Tag>{discogs.country}</Tag>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Géneros / estilos */}
+      {(discogs.genre?.length || discogs.style?.length) ? (
+        <div
+          className="px-4 py-3 flex flex-wrap gap-2"
+          style={{ borderBottom: 'var(--rc-border-card)' }}
+        >
+          {[...(discogs.genre ?? []), ...(discogs.style ?? [])].map(g => (
+            <span key={g} className="font-meta text-xs" style={{ color: 'var(--rc-color-muted)' }}>
+              {g}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      {/* Estado en inventario */}
+      <div className="px-4 py-3" style={{ borderBottom: 'var(--rc-border-card)' }}>
+        {inventory ? (
+          <div className="flex items-center justify-between">
+            <span className="font-meta text-xs" style={{ color: 'var(--rc-color-muted)' }}>
+              EN INVENTARIO
+            </span>
+            <div className="flex gap-4 items-center">
+              <span
+                className="font-display text-xs"
+                style={{ color: 'var(--rc-color-accent)' }}
+              >
+                {inventory.condition}
+              </span>
+              <span className="font-meta text-xs" style={{ color: 'var(--rc-color-text)' }}>
+                {inventory.price.toLocaleString('es-ES', {
+                  style: 'currency',
+                  currency: 'EUR',
+                })}
+              </span>
+              {inventory.bpm && (
+                <span
+                  className="font-meta text-xs px-1"
+                  style={{ backgroundColor: 'var(--rc-color-accent)', color: 'var(--rc-color-bg)' }}
+                >
+                  {inventory.bpm} BPM
+                </span>
+              )}
+            </div>
+          </div>
+        ) : (
+          <p className="font-meta text-xs" style={{ color: 'var(--rc-color-muted)' }}>
+            No está en el inventario actual
+          </p>
+        )}
+      </div>
+
+      {/* Link a Discogs */}
+      <div className="px-4 py-3">
+        <a
+          href={`https://www.discogs.com/release/${discogs.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-meta text-xs transition-colors hover:text-white"
+          style={{ color: 'var(--rc-color-muted)' }}
+        >
+          Ver en Discogs (ID: {discogs.id}) →
+        </a>
+      </div>
+
+    </div>
+  )
+}
+
+function Tag({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="font-meta text-xs" style={{ color: 'var(--rc-color-muted)' }}>
+      {children}
+    </span>
+  )
+}
